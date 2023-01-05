@@ -4,25 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "BodyPartActor.generated.h"
+#include "WallActor.generated.h"
 
-class AMarkerActor;
 UCLASS()
-class SNAKE_API ABodyPartActor : public AActor
+class SNAKE_API AWallActor : public AActor
 {
 	GENERATED_BODY()
-protected:
-	UPROPERTY(EditDefaultsOnly)
-	UStaticMeshComponent *BodyPartMesh;
+	
 public:	
 	// Sets default values for this actor's properties
-	ABodyPartActor();
+	AWallActor();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:
+public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 };

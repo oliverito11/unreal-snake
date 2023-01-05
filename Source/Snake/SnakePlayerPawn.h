@@ -16,6 +16,9 @@ class SNAKE_API ASnakePlayerPawn : public APawn
 {
 	GENERATED_BODY()
 private:
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMeshComponent *HeadMesh;
+	
 	UPROPERTY(VisibleDefaultsOnly)
 	USpringArmComponent *SpringArm;
 
@@ -52,6 +55,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	void CheckIfHit(FHitResult* Hit);
 	void MoveSnake(float DeltaTime);
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

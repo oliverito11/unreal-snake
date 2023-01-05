@@ -7,17 +7,14 @@
 #include "MarkerManagerComponent.generated.h"
 
 
-class AMarkerActor;
+struct FMarkerStruct;
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class SNAKE_API UMarkerManagerComponent : public UActorComponent
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AMarkerActor> MarkerActorClass;
-
 	UPROPERTY(VisibleAnywhere)
-	TArray<AMarkerActor *> MarkerActorsList;
+	TArray<FMarkerStruct> MarkerList;
 
 	UPROPERTY(VisibleAnywhere)
 	float MaxSpawnMarkerTime {.1};

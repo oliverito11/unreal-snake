@@ -4,8 +4,8 @@
 #include "SnakePlayerPawn.h"
 
 #include "BodyPartActor.h"
-#include "MarkerActor.h"
 #include "MarkerManagerComponent.h"
+#include "MarkerStruct.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -16,11 +16,14 @@ ASnakePlayerPawn::ASnakePlayerPawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Head mesh"));
+	SetRootComponent(HeadMesh);
+	
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring arm"));
-	SetRootComponent(SpringArm);
+	SpringArm->SetupAttachment(RootComponent);
 	
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 }
 
 
@@ -56,7 +59,9 @@ void ASnakePlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void ASnakePlayerPawn::MoveRightSnakeActor(float Axis)
 {
 	if(BodyPartsActors.Num() == 0) return;
-	BodyPartsActors[0]->AddActorWorldRotation(FRotator{0, TurnSpeed * UGameplayStatics::GetWorldDeltaSeconds(this) * Axis, 0});
+	FRotator NewRotation {0, TurnSpeed * UGameplayStatics::GetWorldDeltaSeconds(this) * Axis, 0};
+	BodyPartsActors[0]->AddActorWorldRotation(NewRotation);
+	HeadMesh->SetWorldRotation(BodyPartsActors[0]->GetActorRotation());
 }
 
 void ASnakePlayerPawn::MoveSnake(float DeltaTime)
@@ -64,21 +69,40 @@ void ASnakePlayerPawn::MoveSnake(float DeltaTime)
 	if(BodyPartsActors.Num() == 0) return;
 	
 	FVector DeltaLocation = BodyPartsActors[0]->GetActorForwardVector() * MoveSpeed * DeltaTime;
-	BodyPartsActors[0]->AddActorWorldOffset(DeltaLocation, true);
-
+	FHitResult Hit;
+	BodyPartsActors[0]->AddActorWorldOffset(DeltaLocation, true, &Hit);
+	HeadMesh->SetWorldLocation(BodyPartsActors[0]->GetActorLocation());
+	CheckIfHit(&Hit);
 	if(BodyPartsActors.Num() > 1)
 	{
 		for(int32 i = 1; i < BodyPartsActors.Num(); i++)
 		{
 			UMarkerManagerComponent *TempMarkerManager = Cast<UMarkerManagerComponent>(BodyPartsActors[i - 1]->GetComponentByClass(UMarkerManagerComponent::StaticClass()));
-			if(!TempMarkerManager || TempMarkerManager->MarkerActorsList.Num() < 1) continue;
+			if(!TempMarkerManager || TempMarkerManager->MarkerList.Num() < 1) continue;
 			
-			BodyPartsActors[i]->SetActorLocation(TempMarkerManager->MarkerActorsList[0]->GetActorLocation());
-			BodyPartsActors[i]->SetActorRotation(TempMarkerManager->MarkerActorsList[0]->GetActorRotation());
-			TempMarkerManager->MarkerActorsList[0]->Destroy();
-			TempMarkerManager->MarkerActorsList.RemoveAt(0);
+			BodyPartsActors[i]->SetActorLocation(TempMarkerManager->MarkerList[0].Position);
+			BodyPartsActors[i]->SetActorRotation(TempMarkerManager->MarkerList[0].Rotation);
+			TempMarkerManager->MarkerList.RemoveAt(0);
 		}		
 	}
+}
+
+void ASnakePlayerPawn::CheckIfHit(FHitResult* Hit)
+{
+	if(!Hit->GetActor()) return;
+	
+	if(!Cast<ABodyPartActor>(Hit->GetActor())) return;
+
+	for(int32 i = 0; i < BodyPartsActors.Num(); i++)
+	{
+		UMarkerManagerComponent *TempMarkerManager = Cast<UMarkerManagerComponent>(BodyPartsActors[i]->GetComponentByClass(UMarkerManagerComponent::StaticClass()));
+		if(!TempMarkerManager) continue;
+		TempMarkerManager->ClearMarkerList();
+		BodyPartsActors[i]->Destroy();
+	}
+
+	BodyPartsActors.Empty();
+	UE_LOG(LogTemp, Warning, TEXT("End of the game"));
 }
 
 void ASnakePlayerPawn::IncreaseTail()
@@ -101,7 +125,7 @@ void ASnakePlayerPawn::IncreaseTail()
 	SpawnTime += UGameplayStatics::GetWorldDeltaSeconds(this);
 	if(SpawnTime >= SpawnOffset)
 	{
-		ABodyPartActor *BodyPart = GetWorld()->SpawnActor<ABodyPartActor>(BodyPartClass, MarkerManager->MarkerActorsList[0]->GetActorLocation(), MarkerManager->MarkerActorsList[0]->GetActorRotation());
+		ABodyPartActor *BodyPart = GetWorld()->SpawnActor<ABodyPartActor>(BodyPartClass, MarkerManager->MarkerList[0].Position, MarkerManager->MarkerList[0].Rotation);
 		AddNewBodyPart(BodyPart);
 		
 		UMarkerManagerComponent *TempMarkerManager = Cast<UMarkerManagerComponent>(BodyPart->GetComponentByClass(UMarkerManagerComponent::StaticClass()));
