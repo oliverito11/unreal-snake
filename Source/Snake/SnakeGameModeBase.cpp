@@ -19,7 +19,9 @@ void ASnakeGameModeBase::Tick(float DeltaSeconds)
 	if(SpawnFruitTime <= 0)
 	{
 		//Spawn new fruit in random position
-		FVector SpawnLocation {FMath::RandRange(Width, Height),FMath::RandRange(Width, Height), 0};
+		float X = FMath::FRandRange(0, Width);
+		float Y = FMath::FRandRange(0, Height);
+		FVector SpawnLocation = FVector{X, Y, 0};
 		GetWorld()->SpawnActor<AFruitActor>(FruitActorClass, SpawnLocation, FRotator::ZeroRotator);
 		SpawnFruitTime = MaxSpawnFruitTime;
 	}

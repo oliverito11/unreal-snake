@@ -10,7 +10,9 @@ UCLASS()
 class SNAKE_API AWallActor : public AActor
 {
 	GENERATED_BODY()
-	
+private:
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMeshComponent *WallMesh;
 public:	
 	// Sets default values for this actor's properties
 	AWallActor();

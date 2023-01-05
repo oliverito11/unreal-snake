@@ -25,6 +25,14 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	UCameraComponent *Camera;
 
+	UPROPERTY(EditAnywhere, Category="Spawn")
+	float StartTimer {3};
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<UCameraShakeBase> CameraShakeClass;
+	
+	bool HasStarted {false};
+	
 	UPROPERTY(EditDefaultsOnly, Category="Body")
 	TSubclassOf<ABodyPartActor> BodyPartClass;
 
@@ -45,7 +53,19 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category="Spawn")
 	bool CanSpawn {false};
+	bool GameOver {false};
+
+	UPROPERTY(EditDefaultsOnly, Category="Widget")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
 	
+	UPROPERTY(VisibleDefaultsOnly, Category="Widget")
+	UUserWidget *GameOverWidget;
+
+	UPROPERTY(EditDefaultsOnly)
+	float ShowMenuTimer {2};
+
+	UPROPERTY(VisibleAnywhere)
+	int64 Score {0};
 public:
 	// Sets default values for this pawn's properties
 	ASnakePlayerPawn();
@@ -67,6 +87,14 @@ public:
 
 	void AddNewBodyPart(ABodyPartActor* BodyPart);
 	void IncreaseTail();
+	void ShowDeadScreen();
+	void EndGame();
 	void ManageSnakeBody();
 	void SetCanSpawn(bool Spawn) { this->CanSpawn = Spawn; }
+
+	UFUNCTION(BlueprintCallable)
+	int GetStartTime() const { return FMath::TruncToInt(StartTimer); }
+
+	UFUNCTION(BlueprintCallable)
+	int64 GetScore() const { return this->Score; }
 };

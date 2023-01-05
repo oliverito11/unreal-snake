@@ -6,9 +6,12 @@
 #include "BodyPartActor.h"
 #include "MarkerManagerComponent.h"
 #include "MarkerStruct.h"
+#include "WallActor.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "UObject/ConstructorHelpers.h"
 
 // Sets default values
 ASnakePlayerPawn::ASnakePlayerPawn()
@@ -16,6 +19,12 @@ ASnakePlayerPawn::ASnakePlayerPawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	ConstructorHelpers::FClassFinder<UUserWidget> GameOverWidgetBP(TEXT("/Game/UI/WBP_GameOver"));
+	if(GameOverWidgetBP.Succeeded())
+	{
+		GameOverWidgetClass = GameOverWidgetBP.Class;
+	}
+	
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Head mesh"));
 	SetRootComponent(HeadMesh);
 	
@@ -39,7 +48,27 @@ void ASnakePlayerPawn::BeginPlay()
 void ASnakePlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	if(ShowMenuTimer <= 0) return;
+	if(GameOver)
+	{
+		ShowMenuTimer -= DeltaTime;
+		if(ShowMenuTimer <= 0)
+		{
+			ShowDeadScreen();
+		}
+		return;
+	}
+	
+	if(!HasStarted)
+	{
+		StartTimer -= DeltaTime;
+		if(StartTimer <= 0)
+		{
+			HasStarted = true;
+		}
+		return;
+	}
+	Score += BodyPartsActors.Num();
 	MoveSnake(DeltaTime);
 	ManageSnakeBody();
 
@@ -58,7 +87,7 @@ void ASnakePlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void ASnakePlayerPawn::MoveRightSnakeActor(float Axis)
 {
-	if(BodyPartsActors.Num() == 0) return;
+	if(BodyPartsActors.IsEmpty()) return;
 	FRotator NewRotation {0, TurnSpeed * UGameplayStatics::GetWorldDeltaSeconds(this) * Axis, 0};
 	BodyPartsActors[0]->AddActorWorldRotation(NewRotation);
 	HeadMesh->SetWorldRotation(BodyPartsActors[0]->GetActorRotation());
@@ -66,12 +95,13 @@ void ASnakePlayerPawn::MoveRightSnakeActor(float Axis)
 
 void ASnakePlayerPawn::MoveSnake(float DeltaTime)
 {
-	if(BodyPartsActors.Num() == 0) return;
+	if(BodyPartsActors.IsEmpty()) return;
 	
 	FVector DeltaLocation = BodyPartsActors[0]->GetActorForwardVector() * MoveSpeed * DeltaTime;
 	FHitResult Hit;
 	BodyPartsActors[0]->AddActorWorldOffset(DeltaLocation, true, &Hit);
 	HeadMesh->SetWorldLocation(BodyPartsActors[0]->GetActorLocation());
+	
 	CheckIfHit(&Hit);
 	if(BodyPartsActors.Num() > 1)
 	{
@@ -91,8 +121,8 @@ void ASnakePlayerPawn::CheckIfHit(FHitResult* Hit)
 {
 	if(!Hit->GetActor()) return;
 	
-	if(!Cast<ABodyPartActor>(Hit->GetActor())) return;
-
+	if(!Cast<ABodyPartActor>(Hit->GetActor()) && !Cast<AWallActor>(Hit->GetActor())) return;
+	
 	for(int32 i = 0; i < BodyPartsActors.Num(); i++)
 	{
 		UMarkerManagerComponent *TempMarkerManager = Cast<UMarkerManagerComponent>(BodyPartsActors[i]->GetComponentByClass(UMarkerManagerComponent::StaticClass()));
@@ -107,7 +137,7 @@ void ASnakePlayerPawn::CheckIfHit(FHitResult* Hit)
 
 void ASnakePlayerPawn::IncreaseTail()
 {
-	if(BodyPartsActors.Num() == 0)
+	if(BodyPartsActors.IsEmpty())
 	{
 		//Spawn the head
 		ABodyPartActor *Head = GetWorld()->SpawnActor<ABodyPartActor>(BodyPartClass, GetActorLocation(), GetActorRotation());
@@ -150,8 +180,10 @@ void ASnakePlayerPawn::ManageSnakeBody()
 		}
 	}
 
-	if(BodyPartsActors.Num() == 0)
-		Destroy();
+	if(BodyPartsActors.IsEmpty())
+	{
+		EndGame();
+	}
 }
 
 void ASnakePlayerPawn::AddNewBodyPart(ABodyPartActor* BodyPart)
@@ -160,4 +192,22 @@ void ASnakePlayerPawn::AddNewBodyPart(ABodyPartActor* BodyPart)
 	BodyPart->FinishAddComponent(MarkerManagerComponent, true, GetActorTransform());
 	BodyPart->AddInstanceComponent(MarkerManagerComponent);
 	BodyPartsActors.Add(BodyPart);
+}
+
+void ASnakePlayerPawn::EndGame()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Game Over!"));
+	GetWorld()->GetFirstPlayerController()->PlayerCameraManager->StartCameraShake(CameraShakeClass, 10);
+	GameOver = true;
+}
+
+void ASnakePlayerPawn::ShowDeadScreen()
+{
+	auto *Widget = CreateWidget(GetGameInstance(), GameOverWidgetClass);
+	if(Widget)
+	{
+		Widget->AddToViewport();
+	}
+	GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
+	Destroy();
 }
