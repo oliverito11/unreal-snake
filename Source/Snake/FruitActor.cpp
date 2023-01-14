@@ -6,6 +6,7 @@
 #include "BodyPartActor.h"
 #include "SnakePlayerPawn.h"
 #include "GameFramework/PlayerState.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AFruitActor::AFruitActor()
@@ -30,13 +31,13 @@ void AFruitActor::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimiti
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
 	if(!Other) return;
-	ABodyPartActor *BodyPart = Cast<ABodyPartActor>(Other);
-	if(!BodyPart) return;
+	if(!Cast<ABodyPartActor>(Other)) return;
 	
 	//Add one more object to tail
 	ASnakePlayerPawn *PlayerPawn = Cast<ASnakePlayerPawn>(GetWorld()->GetFirstPlayerController()->GetPlayerState<APlayerState>()->GetPawn());
 	if(!PlayerPawn) return;
 	PlayerPawn->SetCanSpawn(true);
 
+	UGameplayStatics::PlaySoundAtLocation(this, PickUpSound, GetActorLocation(), GetActorRotation());
 	Destroy();
 }

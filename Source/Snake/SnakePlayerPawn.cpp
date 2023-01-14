@@ -42,12 +42,15 @@ void ASnakePlayerPawn::BeginPlay()
 	Super::BeginPlay();
 	
 	IncreaseTail();
+	Score = 0;
 }
 
 // Called every frame
 void ASnakePlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//Stop the game when dead and show menu
 	if(ShowMenuTimer <= 0) return;
 	if(GameOver)
 	{
@@ -58,7 +61,8 @@ void ASnakePlayerPawn::Tick(float DeltaTime)
 		}
 		return;
 	}
-	
+
+	//Stop the game while the countdown is running
 	if(!HasStarted)
 	{
 		StartTimer -= DeltaTime;
@@ -68,6 +72,12 @@ void ASnakePlayerPawn::Tick(float DeltaTime)
 		}
 		return;
 	}
+
+	GameLogic(DeltaTime);
+}
+
+void ASnakePlayerPawn::GameLogic(float DeltaTime)
+{
 	Score += BodyPartsActors.Num();
 	MoveSnake(DeltaTime);
 	ManageSnakeBody();
@@ -164,8 +174,12 @@ void ASnakePlayerPawn::IncreaseTail()
 		UE_LOG(LogTemp, Warning, TEXT("Increased tail!"));
 
 		//Reset the variables
+		SpawnNumber--;
+		if(SpawnNumber == 0)
+		{
+			CanSpawn = false;
+		}
 		SpawnTime = 0;
-		CanSpawn = false;
 	}
 }
 
@@ -197,17 +211,28 @@ void ASnakePlayerPawn::AddNewBodyPart(ABodyPartActor* BodyPart)
 void ASnakePlayerPawn::EndGame()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Game Over!"));
+	UGameplayStatics::PlaySound2D(this, DeadSound);
 	GetWorld()->GetFirstPlayerController()->PlayerCameraManager->StartCameraShake(CameraShakeClass, 10);
 	GameOver = true;
 }
 
 void ASnakePlayerPawn::ShowDeadScreen()
 {
-	auto *Widget = CreateWidget(GetGameInstance(), GameOverWidgetClass);
+	UUserWidget *Widget = CreateWidget(GetGameInstance(), GameOverWidgetClass);
 	if(Widget)
 	{
 		Widget->AddToViewport();
 	}
 	GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
 	Destroy();
+}
+
+void ASnakePlayerPawn::SetCanSpawn(bool Spawn)
+{
+	this->CanSpawn = true;
+
+	if(CanSpawn)
+	{
+		SpawnNumber++;
+	}
 }

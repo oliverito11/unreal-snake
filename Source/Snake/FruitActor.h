@@ -13,6 +13,9 @@ class SNAKE_API AFruitActor : public AActor
 private:
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent *FruitMesh;
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase *PickUpSound;
 public:	
 	// Sets default values for this actor's properties
 	AFruitActor();

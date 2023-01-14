@@ -61,11 +61,24 @@ private:
 	UPROPERTY(VisibleDefaultsOnly, Category="Widget")
 	UUserWidget *GameOverWidget;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly, Category="Dead")
 	float ShowMenuTimer {2};
 
+	UPROPERTY(EditDefaultsOnly, Category="Dead")
+	USoundBase *DeadSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Spawn")
+	USoundBase *StartTimerSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Spawn")
+	USoundBase *LastStartTimerSound;
+	
 	UPROPERTY(VisibleAnywhere)
 	int64 Score {0};
+
+	UPROPERTY(VisibleAnywhere)
+	int32 SpawnNumber;
+
 public:
 	// Sets default values for this pawn's properties
 	ASnakePlayerPawn();
@@ -77,6 +90,7 @@ protected:
 public:
 	void CheckIfHit(FHitResult* Hit);
 	void MoveSnake(float DeltaTime);
+	void GameLogic(float DeltaTime);
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -90,7 +104,7 @@ public:
 	void ShowDeadScreen();
 	void EndGame();
 	void ManageSnakeBody();
-	void SetCanSpawn(bool Spawn) { this->CanSpawn = Spawn; }
+	void SetCanSpawn(bool Spawn);
 
 	UFUNCTION(BlueprintCallable)
 	int GetStartTime() const { return FMath::TruncToInt(StartTimer); }
